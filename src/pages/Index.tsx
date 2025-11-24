@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FenologicalPhase, SystemType, CalculationResult } from "@/types/fertilizer";
+import { SavedRecipe } from "@/types/savedRecipe";
 import { ALL_SALES, SALES_PRINCIPALES } from "@/data/sales";
 import { ALL_TARGETS } from "@/data/targets";
 import { PhaseSelector } from "@/components/PhaseSelector";
@@ -7,11 +8,14 @@ import { TargetDisplay } from "@/components/TargetDisplay";
 import { SalesSelector } from "@/components/SalesSelector";
 import { VolumeInput } from "@/components/VolumeInput";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
+import { SaveRecipeDialog } from "@/components/SaveRecipeDialog";
+import { SavedRecipesList } from "@/components/SavedRecipesList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Beaker, Info } from "lucide-react";
+import { Calculator, Beaker, Info, BookOpen } from "lucide-react";
 import { solveFertilizer, calculateEstimatedEC, calculateTotalNutrients } from "@/utils/fertilizerSolver";
+import { saveRecipe } from "@/utils/recipeStorage";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -23,6 +27,7 @@ const Index = () => {
   const [volume, setVolume] = useState(10);
   const [unit, setUnit] = useState<"L" | "gal">("L");
   const [results, setResults] = useState<CalculationResult[] | null>(null);
+  const [recipesKey, setRecipesKey] = useState(0);
 
   const currentTarget = ALL_TARGETS.find(
     t => t.phase === phase && t.system === system
@@ -78,6 +83,48 @@ const Index = () => {
     }
   };
 
+  const handleSaveRecipe = (name: string, notes: string) => {
+    if (!results || !currentTarget) return;
+
+    const recipe: SavedRecipe = {
+      id: Date.now().toString(),
+      name,
+      notes,
+      createdAt: new Date().toISOString(),
+      phase,
+      system,
+      volume,
+      unit,
+      targetPPM: currentTarget.ppm,
+      results,
+      estimatedEC: calculateEstimatedEC(results, unit === "gal" ? volume * 3.78541 : volume)
+    };
+
+    saveRecipe(recipe);
+    setRecipesKey(prev => prev + 1);
+    toast.success(`Receta "${name}" guardada exitosamente`);
+  };
+
+  const handleLoadRecipe = (recipe: SavedRecipe) => {
+    setPhase(recipe.phase);
+    setSystem(recipe.system);
+    setVolume(recipe.volume);
+    setUnit(recipe.unit);
+    setResults(recipe.results);
+    
+    // Extraer IDs de sales de los resultados
+    const saleIds = recipe.results.map(r => r.sale.id);
+    setSelectedSales(saleIds);
+
+    // Scroll a resultados
+    setTimeout(() => {
+      document.getElementById("results")?.scrollIntoView({ 
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -98,14 +145,18 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
             <TabsTrigger value="calculator" className="gap-2">
               <Calculator className="w-4 h-4" />
               Calculadora
             </TabsTrigger>
+            <TabsTrigger value="saved" className="gap-2">
+              <BookOpen className="w-4 h-4" />
+              Recetas
+            </TabsTrigger>
             <TabsTrigger value="info" className="gap-2">
               <Info className="w-4 h-4" />
-              Información
+              Info
             </TabsTrigger>
           </TabsList>
 
@@ -159,7 +210,23 @@ const Index = () => {
 
             {/* Results Display */}
             {results && currentTarget && (
-              <div id="results">
+              <div id="results" className="space-y-4">
+                {/* Botones de acción sobre resultados */}
+                <div className="flex justify-center">
+                  <SaveRecipeDialog
+                    recipe={{
+                      phase,
+                      system,
+                      volume,
+                      unit,
+                      targetPPM: currentTarget.ppm,
+                      results,
+                      estimatedEC: calculateEstimatedEC(results, unit === "gal" ? volume * 3.78541 : volume)
+                    }}
+                    onSave={handleSaveRecipe}
+                  />
+                </div>
+
                 <ResultsDisplay
                   results={results}
                   targetPPM={currentTarget.ppm}
@@ -169,6 +236,10 @@ const Index = () => {
                 />
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="saved" className="space-y-6">
+            <SavedRecipesList key={recipesKey} onLoadRecipe={handleLoadRecipe} />
           </TabsContent>
 
           <TabsContent value="info" className="space-y-4">

@@ -3,7 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, AlertTriangle, FileDown, Image as ImageIcon, Share2 } from "lucide-react";
+import { exportToPDF, exportToPNG } from "@/utils/exportUtils";
+import { toast } from "sonner";
 
 interface ResultsDisplayProps {
   results: CalculationResult[];
@@ -31,6 +34,26 @@ export function ResultsDisplay({
     );
   }
 
+  const handleExportPDF = async () => {
+    try {
+      await exportToPDF("results-export", "dr-cannabis-receta.pdf");
+      toast.success("PDF descargado exitosamente");
+    } catch (error) {
+      toast.error("Error al exportar PDF");
+      console.error(error);
+    }
+  };
+
+  const handleExportPNG = async () => {
+    try {
+      await exportToPNG("results-export", "dr-cannabis-receta.png");
+      toast.success("Imagen descargada exitosamente");
+    } catch (error) {
+      toast.error("Error al exportar imagen");
+      console.error(error);
+    }
+  };
+
   // Calcular totales
   const totalGramos = results.reduce((sum, r) => sum + r.gramos, 0);
 
@@ -48,8 +71,22 @@ export function ResultsDisplay({
 
   return (
     <div className="space-y-6">
-      {/* Resumen General */}
-      <Card>
+      {/* Botones de Exportación */}
+      <div className="flex flex-wrap gap-3 justify-end">
+        <Button variant="outline" onClick={handleExportPNG} className="gap-2">
+          <ImageIcon className="w-4 h-4" />
+          Exportar PNG
+        </Button>
+        <Button variant="outline" onClick={handleExportPDF} className="gap-2">
+          <FileDown className="w-4 h-4" />
+          Exportar PDF
+        </Button>
+      </div>
+
+      {/* Contenedor para exportación */}
+      <div id="results-export">
+        {/* Resumen General */}
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-primary" />
@@ -211,6 +248,7 @@ export function ResultsDisplay({
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
