@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { FenologicalPhase, SystemType } from "@/types/fertilizer";
+import { FenologicalPhase, SystemType, CalculationResult } from "@/types/fertilizer";
 import { ALL_SALES, SALES_PRINCIPALES } from "@/data/sales";
 import { ALL_TARGETS } from "@/data/targets";
 import { PhaseSelector } from "@/components/PhaseSelector";
 import { TargetDisplay } from "@/components/TargetDisplay";
 import { SalesSelector } from "@/components/SalesSelector";
 import { VolumeInput } from "@/components/VolumeInput";
+import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calculator, Beaker, Info } from "lucide-react";
+import { solveFertilizer, calculateEstimatedEC, calculateTotalNutrients } from "@/utils/fertilizerSolver";
+import { toast } from "sonner";
 
 const Index = () => {
   const [phase, setPhase] = useState<FenologicalPhase>("vegetativo");
@@ -19,6 +22,7 @@ const Index = () => {
   );
   const [volume, setVolume] = useState(10);
   const [unit, setUnit] = useState<"L" | "gal">("L");
+  const [results, setResults] = useState<CalculationResult[] | null>(null);
 
   const currentTarget = ALL_TARGETS.find(
     t => t.phase === phase && t.system === system
@@ -33,16 +37,45 @@ const Index = () => {
   };
 
   const calculateSolution = () => {
-    // Esta función será implementada en una futura iteración
-    // Por ahora solo muestra un placeholder
-    console.log("Calculando solución...", {
-      phase,
-      system,
-      selectedSales,
-      volume,
-      unit,
-      target: currentTarget
-    });
+    if (!currentTarget) {
+      toast.error("No se encontró objetivo para esta fase y sistema");
+      return;
+    }
+
+    // Convertir galones a litros si es necesario
+    const volumeInLiters = unit === "gal" ? volume * 3.78541 : volume;
+
+    // Obtener sales seleccionadas
+    const sales = ALL_SALES.filter(s => selectedSales.includes(s.id));
+
+    if (sales.length === 0) {
+      toast.error("Selecciona al menos una sal");
+      return;
+    }
+
+    try {
+      // Ejecutar el solver
+      const calculationResults = solveFertilizer(
+        currentTarget.ppm,
+        sales,
+        volumeInLiters
+      );
+
+      setResults(calculationResults);
+      
+      toast.success("Solución calculada exitosamente");
+      
+      // Scroll a resultados
+      setTimeout(() => {
+        document.getElementById("results")?.scrollIntoView({ 
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 100);
+    } catch (error) {
+      console.error("Error al calcular solución:", error);
+      toast.error("Error al calcular la solución");
+    }
   };
 
   return (
@@ -123,6 +156,19 @@ const Index = () => {
                 Calcular Solución Nutritiva
               </Button>
             </div>
+
+            {/* Results Display */}
+            {results && currentTarget && (
+              <div id="results">
+                <ResultsDisplay
+                  results={results}
+                  targetPPM={currentTarget.ppm}
+                  totalNutrients={calculateTotalNutrients(results)}
+                  estimatedEC={calculateEstimatedEC(results, unit === "gal" ? volume * 3.78541 : volume)}
+                  volumeLiters={unit === "gal" ? volume * 3.78541 : volume}
+                />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="info" className="space-y-4">
