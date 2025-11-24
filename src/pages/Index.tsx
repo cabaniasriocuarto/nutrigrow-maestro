@@ -10,10 +10,12 @@ import { VolumeInput } from "@/components/VolumeInput";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { SaveRecipeDialog } from "@/components/SaveRecipeDialog";
 import { SavedRecipesList } from "@/components/SavedRecipesList";
+import { InventoryManager } from "@/components/InventoryManager";
+import { PhCalculator } from "@/components/PhCalculator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Beaker, Info, BookOpen } from "lucide-react";
+import { Calculator, Beaker, Info, BookOpen, Package, Droplets } from "lucide-react";
 import { solveFertilizer, calculateEstimatedEC, calculateTotalNutrients } from "@/utils/fertilizerSolver";
 import { saveRecipe } from "@/utils/recipeStorage";
 import { toast } from "sonner";
@@ -145,17 +147,28 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
-            <TabsTrigger value="calculator" className="gap-2">
-              <Calculator className="w-4 h-4" />
-              Calculadora
+          <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-2 md:grid-cols-5 gap-1">
+            <TabsTrigger value="calculator" className="gap-1.5 text-xs md:text-sm">
+              <Calculator className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Calculadora</span>
+              <span className="md:hidden">Calc</span>
             </TabsTrigger>
-            <TabsTrigger value="saved" className="gap-2">
-              <BookOpen className="w-4 h-4" />
-              Recetas
+            <TabsTrigger value="ph" className="gap-1.5 text-xs md:text-sm">
+              <Droplets className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              pH
             </TabsTrigger>
-            <TabsTrigger value="info" className="gap-2">
-              <Info className="w-4 h-4" />
+            <TabsTrigger value="inventory" className="gap-1.5 text-xs md:text-sm">
+              <Package className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Inventario</span>
+              <span className="md:hidden">Stock</span>
+            </TabsTrigger>
+            <TabsTrigger value="saved" className="gap-1.5 text-xs md:text-sm">
+              <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Recetas</span>
+              <span className="md:hidden">Saved</span>
+            </TabsTrigger>
+            <TabsTrigger value="info" className="gap-1.5 text-xs md:text-sm">
+              <Info className="w-3.5 h-3.5 md:w-4 md:h-4" />
               Info
             </TabsTrigger>
           </TabsList>
@@ -236,6 +249,14 @@ const Index = () => {
                 />
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="ph" className="space-y-6">
+            <PhCalculator />
+          </TabsContent>
+
+          <TabsContent value="inventory" className="space-y-6">
+            <InventoryManager />
           </TabsContent>
 
           <TabsContent value="saved" className="space-y-6">
