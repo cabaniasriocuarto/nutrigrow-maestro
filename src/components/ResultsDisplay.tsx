@@ -4,9 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertTriangle, FileDown, Image as ImageIcon, Share2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, FileDown, Image as ImageIcon, Share2, DollarSign } from "lucide-react";
 import { exportToPDF, exportToPNG } from "@/utils/exportUtils";
 import { toast } from "sonner";
+import { getInventoryBySaleId } from "@/utils/inventoryStorage";
 
 interface ResultsDisplayProps {
   results: CalculationResult[];
@@ -23,6 +24,27 @@ export function ResultsDisplay({
   estimatedEC,
   volumeLiters
 }: ResultsDisplayProps) {
+  // Calculate costs
+  const calculateCosts = () => {
+    let totalCost = 0;
+    const costsPerSale: { [key: string]: number } = {};
+
+    results.forEach(result => {
+      const inventory = getInventoryBySaleId(result.sale.id);
+      if (inventory) {
+        const costPerGram = inventory.costPerKg / 1000;
+        const cost = result.gramos * costPerGram;
+        totalCost += cost;
+        costsPerSale[result.sale.id] = cost;
+      }
+    });
+
+    return { totalCost, costsPerSale, costPerLiter: totalCost / volumeLiters };
+  };
+
+  const { totalCost, costsPerSale, costPerLiter } = calculateCosts();
+  const hasCostData = totalCost > 0;
+
   if (results.length === 0) {
     return (
       <Alert>
@@ -114,6 +136,18 @@ export function ResultsDisplay({
               <p className="text-sm text-muted-foreground">Concentración</p>
               <p className="text-2xl font-bold">{(totalGramos / volumeLiters).toFixed(2)} g/L</p>
             </div>
+            {hasCostData && (
+              <div>
+                <p className="text-sm text-muted-foreground">Costo Total</p>
+                <p className="text-2xl font-bold flex items-center gap-1">
+                  <DollarSign className="w-5 h-5" />
+                  {totalCost.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ${costPerLiter.toFixed(2)}/L
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -135,6 +169,7 @@ export function ResultsDisplay({
                 <TableHead className="text-right">Gramos Totales</TableHead>
                 <TableHead className="text-right">g/L</TableHead>
                 <TableHead>Tipo</TableHead>
+                {hasCostData && <TableHead className="text-right">Costo</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,6 +186,13 @@ export function ResultsDisplay({
                       {result.sale.tipo}
                     </Badge>
                   </TableCell>
+                  {hasCostData && (
+                    <TableCell className="text-right">
+                      {costsPerSale[result.sale.id] 
+                        ? `$${costsPerSale[result.sale.id].toFixed(2)}`
+                        : "-"}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               <TableRow className="font-bold bg-muted/50">
