@@ -14,6 +14,7 @@ import { InventoryManager } from "@/components/InventoryManager";
 import { PhCalculator } from "@/components/PhCalculator";
 import { WateringHistory } from "@/components/WateringHistory";
 import { VpdCalculator } from "@/components/VpdCalculator";
+import { WateringCharts } from "@/components/WateringCharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -272,6 +273,7 @@ const Index = () => {
 
           <TabsContent value="history" className="space-y-6">
             <WateringHistory />
+            <WateringCharts />
           </TabsContent>
 
           <TabsContent value="inventory" className="space-y-6">
