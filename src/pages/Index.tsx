@@ -12,10 +12,12 @@ import { SaveRecipeDialog } from "@/components/SaveRecipeDialog";
 import { SavedRecipesList } from "@/components/SavedRecipesList";
 import { InventoryManager } from "@/components/InventoryManager";
 import { PhCalculator } from "@/components/PhCalculator";
+import { WateringHistory } from "@/components/WateringHistory";
+import { VpdCalculator } from "@/components/VpdCalculator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Beaker, Info, BookOpen, Package, Droplets } from "lucide-react";
+import { Calculator, Beaker, Info, BookOpen, Package, Droplets, Calendar, Wind } from "lucide-react";
 import { solveFertilizer, calculateEstimatedEC, calculateTotalNutrients } from "@/utils/fertilizerSolver";
 import { saveRecipe } from "@/utils/recipeStorage";
 import { toast } from "sonner";
@@ -147,7 +149,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-2 md:grid-cols-5 gap-1">
+          <TabsList className="grid w-full max-w-6xl mx-auto grid-cols-2 md:grid-cols-7 gap-1">
             <TabsTrigger value="calculator" className="gap-1.5 text-xs md:text-sm">
               <Calculator className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <span className="hidden md:inline">Calculadora</span>
@@ -156,6 +158,15 @@ const Index = () => {
             <TabsTrigger value="ph" className="gap-1.5 text-xs md:text-sm">
               <Droplets className="w-3.5 h-3.5 md:w-4 md:h-4" />
               pH
+            </TabsTrigger>
+            <TabsTrigger value="vpd" className="gap-1.5 text-xs md:text-sm">
+              <Wind className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              VPD
+            </TabsTrigger>
+            <TabsTrigger value="history" className="gap-1.5 text-xs md:text-sm">
+              <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Historial</span>
+              <span className="md:hidden">Log</span>
             </TabsTrigger>
             <TabsTrigger value="inventory" className="gap-1.5 text-xs md:text-sm">
               <Package className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -253,6 +264,14 @@ const Index = () => {
 
           <TabsContent value="ph" className="space-y-6">
             <PhCalculator />
+          </TabsContent>
+
+          <TabsContent value="vpd" className="space-y-6">
+            <VpdCalculator />
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-6">
+            <WateringHistory />
           </TabsContent>
 
           <TabsContent value="inventory" className="space-y-6">
