@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { WateringRecord } from "@/types/wateringHistory";
 import { saveWateringRecord, getAllWateringRecords, deleteWateringRecord } from "@/utils/wateringStorage";
-import { Plus, Trash2, Calendar, FileDown } from "lucide-react";
+import { Plus, Trash2, Calendar, FileDown, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPDF } from "@/utils/exportUtils";
+import { exportToPDF, exportToCSV } from "@/utils/exportUtils";
+import { validateWateringValues } from "@/utils/wateringValidation";
 
 export function WateringHistory() {
   const [records, setRecords] = useState<WateringRecord[]>([]);
@@ -52,6 +53,14 @@ export function WateringHistory() {
       system: formData.system
     };
 
+    // Validate EC and pH ranges
+    const validation = validateWateringValues(
+      newRecord.ec,
+      newRecord.ph,
+      newRecord.phase,
+      newRecord.system
+    );
+
     saveWateringRecord(newRecord);
     loadRecords();
     setIsDialogOpen(false);
@@ -68,10 +77,23 @@ export function WateringHistory() {
       recipeName: ""
     });
 
-    toast({
-      title: "Registro guardado",
-      description: "El riego ha sido registrado correctamente"
-    });
+    // Show success or warning toast based on validation
+    if (validation.isValid) {
+      toast({
+        title: "Registro guardado",
+        description: "El riego ha sido registrado correctamente"
+      });
+    } else {
+      const warnings = [];
+      if (validation.ecMessage) warnings.push(validation.ecMessage);
+      if (validation.phMessage) warnings.push(validation.phMessage);
+      
+      toast({
+        title: "⚠️ Registro guardado con advertencias",
+        description: warnings.join(" • "),
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -99,6 +121,44 @@ export function WateringHistory() {
     }
   };
 
+  const handleExportCSV = () => {
+    try {
+      if (records.length === 0) {
+        toast({
+          title: "Sin datos",
+          description: "No hay registros para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const csvData = records.map(r => ({
+        Fecha: new Date(r.date).toLocaleDateString('es-ES'),
+        "Volumen (L)": r.volumeLiters,
+        "EC (mS/cm)": r.ec.toFixed(2),
+        pH: r.ph.toFixed(1),
+        "Drenaje (%)": r.drainage,
+        Fase: r.phase,
+        Sistema: r.system,
+        Receta: r.recipeName || "-",
+        Observaciones: r.observations || "-"
+      }));
+
+      exportToCSV(csvData, "historial-riegos.csv");
+      
+      toast({
+        title: "CSV exportado",
+        description: "El historial se ha exportado correctamente",
+      });
+    } catch (error) {
+      toast({
+        title: "Error al exportar",
+        description: "No se pudo generar el CSV",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div id="watering-history-export">
       <Card>
@@ -114,9 +174,13 @@ export function WateringHistory() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExportCSV}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
               <Button variant="outline" onClick={handleExportPDF}>
                 <FileDown className="h-4 w-4 mr-2" />
-                Exportar PDF
+                PDF
               </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>

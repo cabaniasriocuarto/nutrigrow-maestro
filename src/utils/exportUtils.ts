@@ -80,3 +80,32 @@ export function shareAsText(content: string): void {
 function copyToClipboard(text: string): void {
   navigator.clipboard.writeText(text);
 }
+
+export function exportToCSV(data: any[], fileName: string = "export.csv"): void {
+  if (data.length === 0) {
+    throw new Error("No hay datos para exportar");
+  }
+
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(","),
+    ...data.map(row => 
+      headers.map(header => {
+        const value = row[header];
+        // Handle values that contain commas or quotes
+        if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value ?? "";
+      }).join(",")
+    )
+  ].join("\n");
+
+  const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
