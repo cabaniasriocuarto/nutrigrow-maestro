@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { WateringRecord } from "@/types/wateringHistory";
 import { saveWateringRecord, getAllWateringRecords, deleteWateringRecord } from "@/utils/wateringStorage";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { exportToPDF } from "@/utils/exportUtils";
 
 export function WateringHistory() {
   const [records, setRecords] = useState<WateringRecord[]>([]);
@@ -82,26 +83,48 @@ export function WateringHistory() {
     });
   };
 
+  const handleExportPDF = async () => {
+    try {
+      await exportToPDF("watering-history-export", "historial-riegos.pdf");
+      toast({
+        title: "PDF exportado",
+        description: "El historial se ha exportado correctamente",
+      });
+    } catch (error) {
+      toast({
+        title: "Error al exportar",
+        description: "No se pudo generar el PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Historial de Riegos
-            </CardTitle>
-            <CardDescription>
-              Registro temporal de EC, pH, drenaje y observaciones del cultivo
-            </CardDescription>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Registro
+    <div id="watering-history-export">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Historial de Riegos
+              </CardTitle>
+              <CardDescription>
+                Registro temporal de EC, pH, drenaje y observaciones del cultivo
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExportPDF}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Exportar PDF
               </Button>
-            </DialogTrigger>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nuevo Registro
+                  </Button>
+                </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Registrar Riego</DialogTitle>
@@ -208,8 +231,9 @@ export function WateringHistory() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
-      </CardHeader>
+            </div>
+          </div>
+        </CardHeader>
       <CardContent>
         {records.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
@@ -259,5 +283,6 @@ export function WateringHistory() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
