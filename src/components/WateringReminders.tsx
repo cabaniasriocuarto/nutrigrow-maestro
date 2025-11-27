@@ -12,7 +12,8 @@ import {
   saveReminderSettings, 
   getReminderSettings, 
   requestNotificationPermission,
-  showWateringNotification 
+  showWateringNotification,
+  scheduleWateringReminder
 } from "@/utils/reminderStorage";
 import { calculateNextWatering, getPhaseIntervalRecommendation } from "@/utils/reminderCalculations";
 import { getAllWateringRecords } from "@/utils/wateringStorage";
@@ -44,6 +45,13 @@ export function WateringReminders() {
       updateSchedule();
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (schedule && settings.notificationsEnabled) {
+      // Schedule native notification for next watering
+      scheduleWateringReminder(schedule.nextWateringDate, schedule.message);
+    }
+  }, [schedule, settings.notificationsEnabled]);
 
   const updateSchedule = () => {
     const records = getAllWateringRecords();
@@ -144,8 +152,8 @@ export function WateringReminders() {
     saveReminderSettings(newSettings);
   };
 
-  const testNotification = () => {
-    showWateringNotification("Esta es una notificación de prueba. ¡Todo funciona correctamente!");
+  const testNotification = async () => {
+    await showWateringNotification("Esta es una notificación de prueba. ¡Todo funciona correctamente!");
     toast({
       title: "Notificación enviada",
       description: "Revisa tus notificaciones del sistema"
