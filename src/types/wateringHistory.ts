@@ -10,4 +10,6 @@ export interface WateringRecord {
   volumeLiters: number;
   phase: string;
   system: string;
+  zoneId?: string;
+  zoneName?: string;
 }

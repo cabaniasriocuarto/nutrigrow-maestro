@@ -6,9 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { WateringRecord } from "@/types/wateringHistory";
 import { saveWateringRecord, getAllWateringRecords, deleteWateringRecord } from "@/utils/wateringStorage";
-import { Plus, Trash2, Calendar, FileDown, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { getAllZones } from "@/utils/zoneStorage";
+import { Plus, Trash2, Calendar, FileDown, FileSpreadsheet, AlertTriangle, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF, exportToCSV } from "@/utils/exportUtils";
 import { validateWateringValues } from "@/utils/wateringValidation";
@@ -16,6 +20,9 @@ import { validateWateringValues } from "@/utils/wateringValidation";
 export function WateringHistory() {
   const [records, setRecords] = useState<WateringRecord[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedZones, setSelectedZones] = useState<string[]>([]);
+  const [zones, setZones] = useState<any[]>([]);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -32,6 +39,7 @@ export function WateringHistory() {
 
   useEffect(() => {
     loadRecords();
+    setZones(getAllZones());
   }, []);
 
   const loadRecords = () => {
@@ -40,30 +48,51 @@ export function WateringHistory() {
   };
 
   const handleSave = () => {
-    const newRecord: WateringRecord = {
-      id: Date.now().toString(),
-      date: formData.date,
-      ec: parseFloat(formData.ec),
-      ph: parseFloat(formData.ph),
-      drainage: parseFloat(formData.drainage),
-      observations: formData.observations,
-      recipeName: formData.recipeName,
-      volumeLiters: parseFloat(formData.volumeLiters),
-      phase: formData.phase,
-      system: formData.system
-    };
-
     // Validate EC and pH ranges
     const validation = validateWateringValues(
-      newRecord.ec,
-      newRecord.ph,
-      newRecord.phase,
-      newRecord.system
+      parseFloat(formData.ec),
+      parseFloat(formData.ph),
+      formData.phase,
+      formData.system
     );
 
-    saveWateringRecord(newRecord);
+    if (bulkMode && selectedZones.length === 0) {
+      toast({
+        title: "Error",
+        description: "Selecciona al menos una zona o lote",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create records
+    const zonesToProcess = bulkMode 
+      ? zones.filter(z => selectedZones.includes(z.id))
+      : [{ id: "", name: "" }]; // Single record without zone
+
+    zonesToProcess.forEach(zone => {
+      const newRecord: WateringRecord = {
+        id: `${Date.now()}-${zone.id || 'single'}`,
+        date: formData.date,
+        ec: parseFloat(formData.ec),
+        ph: parseFloat(formData.ph),
+        drainage: parseFloat(formData.drainage),
+        observations: formData.observations,
+        recipeName: formData.recipeName,
+        volumeLiters: parseFloat(formData.volumeLiters),
+        phase: formData.phase,
+        system: formData.system,
+        zoneId: zone.id || undefined,
+        zoneName: zone.name || undefined
+      };
+
+      saveWateringRecord(newRecord);
+    });
+
     loadRecords();
     setIsDialogOpen(false);
+    setSelectedZones([]);
+    setBulkMode(false);
     
     setFormData({
       date: new Date().toISOString().split('T')[0],
@@ -81,7 +110,9 @@ export function WateringHistory() {
     if (validation.isValid) {
       toast({
         title: "Registro guardado",
-        description: "El riego ha sido registrado correctamente"
+        description: bulkMode 
+          ? `${zonesToProcess.length} registros creados para las zonas seleccionadas`
+          : "El riego ha sido registrado correctamente"
       });
     } else {
       const warnings = [];
@@ -189,7 +220,7 @@ export function WateringHistory() {
                     Nuevo Registro
                   </Button>
                 </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Registrar Riego</DialogTitle>
                 <DialogDescription>
@@ -197,6 +228,57 @@ export function WateringHistory() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                {zones.length > 0 && (
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-accent/50">
+                    <div className="flex items-center gap-2">
+                      <Layers className="h-4 w-4" />
+                      <Label htmlFor="bulk-mode" className="cursor-pointer">
+                        Modo Operación Masiva
+                      </Label>
+                    </div>
+                    <Switch
+                      id="bulk-mode"
+                      checked={bulkMode}
+                      onCheckedChange={setBulkMode}
+                    />
+                  </div>
+                )}
+
+                {bulkMode && (
+                  <div className="space-y-3 p-4 border rounded-lg">
+                    <Label className="text-base">Seleccionar Zonas/Lotes</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Aplica este riego a múltiples zonas o lotes simultáneamente
+                    </p>
+                    <div className="grid gap-2 max-h-40 overflow-y-auto">
+                      {zones.map((zone) => (
+                        <div key={zone.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={zone.id}
+                            checked={selectedZones.includes(zone.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedZones([...selectedZones, zone.id]);
+                              } else {
+                                setSelectedZones(selectedZones.filter(id => id !== zone.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={zone.id}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                          >
+                            {zone.name}
+                            <Badge variant="outline" className="text-xs">
+                              {zone.type === 'zone' ? 'Zona' : 'Lote'}
+                            </Badge>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Fecha</Label>
@@ -309,6 +391,7 @@ export function WateringHistory() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
+                  <TableHead>Zona/Lote</TableHead>
                   <TableHead>Volumen (L)</TableHead>
                   <TableHead>EC</TableHead>
                   <TableHead>pH</TableHead>
@@ -323,6 +406,13 @@ export function WateringHistory() {
                 {records.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>{new Date(record.date).toLocaleDateString('es-ES')}</TableCell>
+                    <TableCell>
+                      {record.zoneName ? (
+                        <Badge variant="secondary">{record.zoneName}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>{record.volumeLiters}</TableCell>
                     <TableCell>{record.ec.toFixed(2)}</TableCell>
                     <TableCell>{record.ph.toFixed(1)}</TableCell>

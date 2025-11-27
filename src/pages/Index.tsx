@@ -17,6 +17,7 @@ import { VpdCalculator } from "@/components/VpdCalculator";
 import { WateringCharts } from "@/components/WateringCharts";
 import { WateringDashboard } from "@/components/WateringDashboard";
 import { WateringReminders } from "@/components/WateringReminders";
+import { ZoneManager } from "@/components/ZoneManager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -274,6 +275,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
+            <ZoneManager />
             <WateringDashboard />
             <WateringReminders />
             <WateringHistory />
